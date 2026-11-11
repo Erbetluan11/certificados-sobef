@@ -402,3 +402,35 @@ textarea{width:100%;resize:vertical}
 }
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important}}
+
+/* Correção do scroll travando */
+html,
+body {
+  height: auto;
+}
+
+body {
+  overflow-x: clip;
+  overscroll-behavior: auto;
+}
+
+.sidebar,
+.table-scroll,
+.alert-list,
+.preview-table {
+  overscroll-behavior: auto;
+}
+
+.shell,
+main {
+  overflow: visible;
+}
+
+/* Garante que nada invisível bloqueie a roda do mouse */
+.skip {
+  pointer-events: none;
+}
+
+.skip:focus {
+  pointer-events: auto;
+}
