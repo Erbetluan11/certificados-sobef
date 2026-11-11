@@ -434,3 +434,18 @@ main {
 .skip:focus {
   pointer-events: auto;
 }
+
+/* Permite rolar a página com o mouse sobre a tabela */
+#classes .table-scroll,
+.table-scroll {
+  overscroll-behavior: auto !important;
+  overscroll-behavior-x: auto !important;
+  overscroll-behavior-y: auto !important;
+
+  /* Mantém a rolagem horizontal em telas menores */
+  overflow-x: auto;
+
+  /* Não cria uma área vertical limitada para a tabela */
+  height: auto;
+  max-height: none;
+}
