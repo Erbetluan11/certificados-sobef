@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#214b3f">
+  <meta name="description" content="Gestão de turmas e acompanhamento de certificados do programa Jovem Aprendiz.">
+  <title>Certificados | SOBEF</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./assets/lucide.min.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Pular para o conteúdo</a>
+  <aside class="sidebar">
+    <div class="brand"><strong>SOBEF<span> / </span></strong><span>Jovem Aprendiz</span></div>
+    <div class="workspace-label">GESTÃO DE CERTIFICADOS</div>
+    <nav aria-label="Navegação principal">
+      <button data-view="overview" class="active"><i data-lucide="layout-dashboard"></i>Visão geral</button>
+      <button data-view="classes"><i data-lucide="layers"></i>Turmas<span id="nav-count" class="nav-count">0</span></button>
+      <button data-view="calendar"><i data-lucide="calendar-days"></i>Calendário</button>
+      <button data-view="files"><i data-lucide="folder-open"></i>Arquivos e ajuda</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="local-note"><i data-lucide="shield-check"></i><strong>Seus dados, no seu dispositivo</strong><p>Importações não são enviadas a um servidor.</p></div>
+      <button id="theme" class="theme" aria-pressed="false"><i data-lucide="moon"></i><span>Modo escuro</span></button>
+      <footer>SOBEF · Certificados <span>v4.0</span></footer>
+    </div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><span>Programa Jovem Aprendiz <span class="top-sep">/</span> <strong id="breadcrumb">Visão geral</strong></span><span class="device-status"><span class="status-dot"></span>Sessão local</span></header>
+    <main id="main" tabindex="-1">
+      <div class="heading">
+        <div><div class="eyebrow">ACOMPANHAMENTO OPERACIONAL</div><h1 id="page-title">Visão geral</h1><p id="page-desc">Da conclusão da turma à entrega dos certificados.</p></div>
+        <div class="heading-actions"><button class="button" id="import"><i data-lucide="upload"></i>Importar planilha</button><button class="button primary" id="new"><i data-lucide="plus"></i>Nova turma</button></div>
+      </div>
+      <div class="scopebar"><label for="year">Ano de referência <select id="year"></select></label><span id="scope-count"></span><button id="backup" class="text-button"><i data-lucide="download"></i>Salvar backup</button></div>
+      <div id="save-notice" class="notice"><i data-lucide="info"></i><span><strong>Dados apenas nesta sessão.</strong> Importe sua planilha ou abra um backup. Antes de sair, salve um arquivo JSON.</span><button class="text-button" id="connect-file">Conectar arquivo</button></div>
+      <div id="feedback" role="status" aria-live="polite" hidden></div>
+      <section id="overview" class="view" aria-label="Visão geral"></section>
+      <section id="classes" class="view" aria-label="Turmas" hidden></section>
+      <section id="calendar" class="view" aria-label="Calendário" hidden></section>
+      <section id="files" class="view" aria-label="Arquivos e ajuda" hidden></section>
+      <footer class="main-footer"><span>Gestão de certificados · SOBEF</span><span>Sem sincronização em nuvem</span></footer>
+    </main>
+  </div>
+  <input type="file" id="input-sheet" accept=".xlsx,.xls,.csv" hidden>
+  <input type="file" id="input-backup" accept=".json" hidden>
+  <dialog id="modal"><div id="modal-content"></div></dialog>
+  <dialog id="confirm-modal"><form method="dialog"><div class="dialog-head"><h2 id="confirm-title">Confirmar ação</h2></div><p id="confirm-message"></p><div class="dialog-footer"><button class="button" value="cancel">Cancelar</button><button class="button primary" value="confirm">Confirmar</button></div></form></dialog>
+</body>
+</html>
