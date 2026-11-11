@@ -8,7 +8,7 @@ const PROCESSES = {proc_dados:'Dados para pesquisa',proc_tabulacao:'Tabulação'
 const NUMBERS = ['alunos','qtdCert','qtdDecl','qtdEfet','qtdDeslig','qtdSemDir'];
 const COURSES = ['ASSISTENTE ADMINISTRATIVO','ALIMENTADOR DE LINHA DE PRODUÇÃO','APRENDIZAGEM PROFISSIONAL EM COMÉRCIO DE BENS, SERVIÇOS E TURISMO','VENDEDOR DE COMÉRCIO VAREJISTA','MÚLTIPLAS OCUPAÇÕES'];
 const state = {records:[],year:'',view:'overview',query:'',status:'',supervisor:'',course:'',turno:'',start:'',end:'',min:'',sort:'numero',dir:1,page:1,selected:new Set(),calendar:new Date(new Date().getFullYear(),new Date().getMonth(),1),fileHandle:null,dirty:false};
-let pendingImport = [], importSource = '', importYear = new Date().getFullYear(), writeChain = Promise.resolve(), xlsxLoading;
+let pendingImport = [], importSource = '', importYear = new Date().getFullYear(), writeChain = Promise.resolve(), xlsxLoading, revision=0;
 const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
 const number = v => v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) && Number(v)>=0 && Number.isInteger(Number(v)) ? Number(v) : null;
@@ -94,7 +94,8 @@ function renderCalendar(){
   const year=state.calendar.getFullYear(),month=state.calendar.getMonth(),first=new Date(year,month,1),start=new Date(year,month,1-first.getDay());
   const rows=scoped().filter(r=>r.termino);let days='';
   for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=iso(d),ev=rows.filter(r=>r.termino===key);days+=`<div class="cal-day${d.getMonth()!==month?' outside':''}${key===iso(new Date())?' today':''}"><span class="day-number">${d.getDate()}</span>${ev.map(r=>`<button class="cal-event" data-detail="${r.id}" title="${esc(r.municipio)} · ${esc(r.situacao)}">${r.situacao==='ENTREGUE'?'✓ ':''}${esc(r.municipio)}</button>`).join('')}</div>`;}
-  $('calendar').innerHTML=`<article class="panel"><div class="calendar-toolbar"><h2>${state.calendar.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</h2><button class="button" data-month="-1" aria-label="Mês anterior">${icon('chevron-left')}</button><button class="button" data-month="0">Hoje</button><button class="button" data-month="1" aria-label="Próximo mês">${icon('chevron-right')}</button></div><div class="calendar-scroll"><div class="calendar-grid">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="weekday">${d}</div>`).join('')}${days}</div></div></article><p class="notes">Eventos indicam o término da turma. O símbolo ✓ identifica turmas entregues. Use o ano de referência para limitar os eventos.</p>`;
+  const monthRows=rows.filter(r=>r.termino.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).sort((a,b)=>a.termino.localeCompare(b.termino));
+  $('calendar').innerHTML=`<article class="panel"><div class="calendar-toolbar"><h2>${state.calendar.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</h2><button class="button" data-month="-1" aria-label="Mês anterior">${icon('chevron-left')}</button><button class="button" data-month="0">Hoje</button><button class="button" data-month="1" aria-label="Próximo mês">${icon('chevron-right')}</button></div><div class="calendar-scroll"><div class="calendar-grid">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="weekday">${d}</div>`).join('')}${days}</div></div><div class="mobile-agenda"><div class="panel-head"><h3>Términos neste mês</h3><span>${monthRows.length} turmas</span></div>${monthRows.length?monthRows.map(r=>`<button class="alert-row" data-detail="${r.id}"><span><strong>${esc(r.municipio)}</strong><small>${dateLabel(r.termino)} · ${LABELS[STATUS.indexOf(r.situacao)]}</small></span>${icon('arrow-up-right')}</button>`).join(''):empty('Sem términos neste mês','Navegue pelos meses ou altere o ano de referência.')}</div></article><p class="notes">Eventos indicam o término da turma. O símbolo ✓ identifica turmas entregues. Use o ano de referência para limitar os eventos.</p>`;
 }
 function renderFiles(){
   $('files').innerHTML=`<div class="files-grid"><article class="panel file-section"><h2>Importar dados</h2><p>Leia Excel ou CSV sem enviar o arquivo para um servidor. Confira a prévia e o ano antes de confirmar.</p><button class="button primary" data-action="import">${icon('upload')}Importar planilha</button><button class="button" data-action="restore">${icon('folder-open')}Abrir backup JSON</button></article>
@@ -108,12 +109,12 @@ function renderFiles(){
     <details><summary>Como imprimir e trabalhar sem internet?</summary><p>A impressão utiliza a janela nativa do navegador e pode ser bloqueada na prévia incorporada. No site aberto diretamente, vá a Turmas e use Imprimir. Para trabalhar offline, baixe o código do repositório e abra site/index.html: as bibliotecas e a fonte são locais. Não há instalação ou cache offline automático do GitHub Pages.</p></details></article></div>`;
 }
 function closeModal(){if($('modal').open)$('modal').close();}
-function showModal(html){$('modal-content').innerHTML=html;if(!$('modal').open)$('modal').showModal();icons();}
+function showModal(html){$('modal-content').innerHTML=html;$('modal').setAttribute('aria-label',$('modal-content').querySelector('h2')?.textContent||'Janela do sistema');if(!$('modal').open)$('modal').showModal();icons();}
 function head(title,sub=''){return `<div class="dialog-head"><div><h2>${esc(title)}</h2>${sub?`<p>${esc(sub)}</p>`:''}</div><button class="close-button" type="button" data-action="close" aria-label="Fechar">${icon('x')}</button></div>`;}
 function field(label,name,value='',type='text',extra=''){return `<label class="field">${label}<input name="${name}" type="${type}" value="${esc(value??'')}" ${extra}></label>`;}
 function editRecord(id){
   const r=state.records.find(r=>r.id===id)||{ano:state.year||new Date().getFullYear(),situacao:'PENDENTE'};
-  showModal(`${head(id?'Editar turma':'Nova turma','Informações da turma, produção e quantitativos')}<form id="class-form"><input type="hidden" name="id" value="${esc(id||'')}"><div class="dialog-body"><fieldset><legend>Informações da turma</legend><div class="form-grid">
+  showModal(`${head(id?'Editar turma':'Nova turma','Informações da turma, produção e quantitativos')}<form id="class-form" method="dialog"><input type="hidden" name="id" value="${esc(id||'')}"><div class="dialog-body"><fieldset><legend>Informações da turma</legend><div class="form-grid">
     ${field('Nº','numero',r.numero,'number','min="0" step="1"')}${field('Ano de referência *','ano',r.ano,'number','min="2018" max="2099" required')}${field('Turno','turno',r.turno,'text','list="turnos"')}
     <label class="field span3">Município / identificação da turma *<input name="municipio" required maxlength="1000" value="${esc(r.municipio||'')}" placeholder="Ex.: FORTALEZA 01"></label>
     <label class="field span3">Curso *<input name="curso" required maxlength="1000" list="courses" value="${esc(r.curso||'')}" placeholder="Escolha ou digite o curso"></label>
@@ -131,7 +132,7 @@ function detail(id){
   const pairs=[['Nº',r.numero||'Não informado'],['Ano',r.ano],['Situação',LABELS[STATUS.indexOf(r.situacao)]],['Curso',r.curso||'Não informado'],['Supervisor',r.supervisor||'Não informado'],['Turno',r.turno||'Não informado'],['Início',dateLabel(r.inicio)],['Término',dateLabel(r.termino)],['Dias',r.dias||'Não informado'],['Alunos',r.alunos??'Não informado'],['Certificados',r.qtdCert??'Não informado'],['Declarações',r.qtdDecl??'Não informado'],['Efetivados',r.qtdEfet??'Não informado'],['Desligados',r.qtdDeslig??'Não informado'],['Sem direito',r.qtdSemDir??'Não informado']];
   showModal(`${head(r.municipio,'Detalhes da turma')}<div class="dialog-body"><dl class="detail-grid">${pairs.map(([l,v])=>`<div><dt>${l}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl><h3 class="detail-title">Processo de confecção</h3><div class="process-read">${Object.entries(PROCESSES).map(([k,l])=>`<span>${l}: <strong>${esc(r[k]||'Pendente')}</strong></span>`).join('')}</div><h3 class="detail-title">Observações</h3><p style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.obs||'Nenhuma observação.')}</p><h3 class="detail-title">Histórico de situação</h3>${r.history.length?`<ul class="history">${[...r.history].reverse().map(h=>`<li>${esc(h.from)} → ${esc(h.to)}<time>${esc(h.date)}</time></li>`).join('')}</ul>`:'<p>Sem alterações de situação registradas.</p>'}</div><div class="dialog-footer"><button class="button" data-action="close">Fechar</button><button class="button primary" data-edit="${id}">${icon('pencil')}Editar turma</button></div>`);
 }
-async function ask(message){$('confirm-message').textContent=message;$('confirm-modal').showModal();return new Promise(resolve=>$('confirm-modal').addEventListener('close',()=>resolve($('confirm-modal').returnValue==='confirm'),{once:true}));}
+async function ask(message){$('confirm-message').textContent=message;$('confirm-modal').returnValue='cancel';$('confirm-modal').showModal();return new Promise(resolve=>$('confirm-modal').addEventListener('close',()=>resolve($('confirm-modal').returnValue==='confirm'),{once:true}));}
 function backupPayload(records=state.records){return JSON.stringify({version:'sobef_v4',exportedAt:new Date().toISOString(),records},null,2);}
 function download(data,name,type){
   const url=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),20000);
@@ -139,10 +140,10 @@ function download(data,name,type){
 function backup(){download(backupPayload(),'backup-sobef-'+iso(new Date())+'.json','application/json');state.dirty=false;feedback('Backup JSON preparado para download. Guarde o arquivo para reabrir sua base.');}
 function saveNotice(message){$('save-notice').querySelector('span').textContent=message;}
 function changed(){
-  state.dirty=true;
+  state.dirty=true;revision++;
   if(state.fileHandle){
-    const handle=state.fileHandle,payload=backupPayload();
-    writeChain=writeChain.then(async()=>{const writer=await handle.createWritable();await writer.write(payload);await writer.close();state.dirty=backupPayload()!==payload;saveNotice('Arquivo local atualizado: '+handle.name+'. Reconecte o arquivo quando abrir o sistema novamente.');}).catch(e=>{state.fileHandle=null;state.dirty=true;saveNotice('Falha ao salvar o arquivo local. Baixe um backup JSON antes de sair.');feedback('Não foi possível gravar no arquivo: '+e.message,true);});
+    const handle=state.fileHandle,payload=backupPayload(),savedRevision=revision;
+    writeChain=writeChain.then(async()=>{const writer=await handle.createWritable();await writer.write(payload);await writer.close();state.dirty=revision!==savedRevision;saveNotice('Arquivo local atualizado: '+handle.name+'. Reconecte o arquivo quando abrir o sistema novamente.');}).catch(e=>{state.fileHandle=null;state.dirty=true;saveNotice('Falha ao salvar o arquivo local. Baixe um backup JSON antes de sair.');feedback('Não foi possível gravar no arquivo: '+e.message,true);});
   }else saveNotice('Há alterações nesta sessão. Salve um backup JSON antes de atualizar ou fechar esta aba.');
   render();
 }
@@ -155,7 +156,7 @@ async function restoreFile(file,handle=null){
   if(file.size>30*1024*1024)throw Error('Arquivo acima de 30 MB.');
   const incoming=parseBackup(await file.text());
   if(!await ask(`Abrir ${incoming.length} turma(s) de "${file.name}"?${state.records.length?'\nA base desta sessão será substituída. Salve um backup antes se precisar mantê-la.':''}`))return false;
-  await writeChain;state.records=incoming;state.fileHandle=handle;state.selected.clear();state.year='';state.page=1;state.dirty=false;render();closeModal();
+  await writeChain;state.records=incoming;state.fileHandle=handle;state.selected.clear();Object.assign(state,{year:'',query:'',status:'',supervisor:'',course:'',turno:'',start:'',end:'',min:'',page:1,dirty:false});render();closeModal();
   saveNotice(handle?'Arquivo conectado: '+handle.name+'. As próximas alterações serão gravadas neste arquivo.':'Backup aberto nesta sessão. Salve um novo JSON depois de alterar os dados.');feedback(`${incoming.length} turma(s) carregada(s).`);return true;
 }
 async function connectFile(){
@@ -183,9 +184,13 @@ async function readSheet(file){
   try{
     if(!file)return;if(file.size>30*1024*1024)throw Error('Arquivo acima de 30 MB.');
     feedback('Lendo a planilha no seu dispositivo...');
-    const XLSX=await loadXlsx();importWorkbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,cellFormula:false});
+    const XLSX=await loadXlsx(),bytes=await file.arrayBuffer();
+    if(/\.csv$/i.test(file.name)){
+      let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{text=new TextDecoder('windows-1252').decode(bytes);}
+      importWorkbook=XLSX.read(text,{type:'string',raw:true,cellDates:false,cellFormula:false});
+    }else importWorkbook=XLSX.read(bytes,{type:'array',cellDates:true,cellFormula:false});
     importSheets=importWorkbook.SheetNames;if(!importSheets.length)throw Error('Planilha sem abas.');
-    importSource=file.name;importSheetIndex=0;previewSheet();
+    importSource=file.name;importSheetIndex=Math.max(0,importSheets.findIndex(name=>XLSX.utils.sheet_to_json(importWorkbook.Sheets[name],{header:1,defval:''}).some(row=>row.some(v=>column(v)==='municipio'))));previewSheet();
   }catch(e){feedback('Importação não realizada: '+e.message,true);}
 }
 function previewSheet(){
@@ -195,7 +200,7 @@ function previewSheet(){
     const headIndex=matrix.findIndex(row=>row.some(v=>column(v)==='municipio'));
     if(headIndex<0)throw Error('Cabeçalho Município não encontrado nesta aba.');
     const headers=matrix[headIndex].map(column),mapped=[];
-    for(const row of matrix.slice(headIndex+1)){const r={};headers.forEach((k,i)=>{if(k)r[k]=row[i]??'';});if(!String(r.municipio||'').trim())continue;
+    for(const row of matrix.slice(headIndex+1)){const r={};headers.forEach((k,i)=>{if(k)r[k]=typeof row[i]==='string'?row[i].trim():row[i]??'';});if(!String(r.municipio||'').trim())continue;
       for(const key of ['inicio','termino']){const original=r[key];r[key]=iso(original,true);if(original&&!r[key])throw Error('Data não reconhecida em '+r.municipio);}
       if(r.situacao && !STATUS.some(s=>norm(s)===norm(r.situacao)))r.obs=[r.obs,`Situação original: ${String(r.situacao).trim()}`].filter(Boolean).join('\n');
       mapped.push(cleanRecord(r,importYear));
@@ -266,7 +271,7 @@ document.addEventListener('change',e=>{
   if(el.id==='import-sheet'){importSheetIndex=Number(el.value);previewSheet();}
 });
 document.addEventListener('submit',e=>{
-  if(e.target.id!=='class-form')return;e.preventDefault();const form=e.target;if(!form.reportValidity())return;
+  if(e.target.getAttribute('id')!=='class-form')return;e.preventDefault();const form=e.target;if(!form.reportValidity())return;
   try{const raw=Object.fromEntries(new FormData(form));if(!raw.municipio.trim()||!raw.curso.trim())throw Error('Preencha município e curso.');
     const existing=state.records.find(r=>r.id===raw.id),r=cleanRecord({...existing,...raw});
     if(r.inicio&&r.termino&&r.termino<r.inicio)throw Error('O término não pode ser anterior ao início.');
