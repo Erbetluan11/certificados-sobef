@@ -1,54 +1,53 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#1e3a8a"><meta name="description" content="Gestão de turmas e acompanhamento de certificados do programa Jovem Aprendiz.">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="description" content="Gestão de turmas e certificados SOBEF.">
 <title>Certificados | SOBEF</title>
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('sobef-ui-theme')==='light'?'light':'dark';}catch{document.documentElement.dataset.theme='dark';}</script>
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./layout-responsive.css">
 <style>#backup,#save-notice,[data-action="connect"]{display:none!important}.heading-actions{flex-wrap:wrap}</style>
-<script defer src="./assets/lucide.min.js"></script><script defer src="./app.js"></script><script defer src="./github-connect.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
- const themeKey='sobef-ui-theme',tokenKey='sobef-github-token-v1';
- function get(key){try{return localStorage.getItem(key);}catch{return null;}}
- function remove(key){try{localStorage.removeItem(key);}catch{}}
- function applyTheme(value){document.documentElement.dataset.theme=value;if(document.body.hasAttribute('data-theme'))document.body.removeAttribute('data-theme');const b=document.getElementById('theme');b.setAttribute('aria-pressed',String(value==='dark'));b.querySelector('span').textContent=value==='dark'?'Modo claro':'Modo escuro';}
- applyTheme(get(themeKey)==='light'?'light':'dark');
- document.getElementById('theme').addEventListener('click',event=>{event.stopImmediatePropagation();const next=document.documentElement.dataset.theme==='dark'?'light':'dark';applyTheme(next);try{localStorage.setItem(themeKey,next);}catch{}},true);
- renderFiles=function(){document.getElementById('files').innerHTML=`<div class="files-grid"><article class="panel file-section"><h2>Importar dados</h2><p>Com GitHub conectado, alterações confirmadas na base serão salvas automaticamente.</p><button class="button primary" data-action="import">Importar planilha</button><button class="button" data-action="restore">Importar backup JSON</button></article><article class="panel file-section"><h2>Backup de segurança</h2><p>Preserve alterações locais em caso de erro ou conflito antes de reconectar.</p><button class="button" data-action="backup">Baixar backup JSON</button></article><article class="panel file-section help"><h2>Salvamento e recuperação</h2><details open><summary>Como funciona?</summary><p>Conecte ao GitHub para carregar a base e ativar o salvamento. Aguarde Salvo no GitHub antes de fechar. Sem conexão ativa, os dados ficam nesta sessão.</p></details><details><summary>Vários computadores</summary><p>A base é carregada ao conectar, não em tempo real. Conflitos pausam o salvamento; preserve um backup local antes de reconectar.</p></details><details><summary>Conexão lembrada</summary><p>Marcar Lembrar conexão salva o token no localStorage deste navegador e permite reconexão ao abrir. Scripts do mesmo site e pessoas com acesso ao perfil podem acessar a credencial. Não use em perfil compartilhado. Desmarque a opção ou desconecte para apagar a cópia salva. Isso não revoga o token no GitHub nem renova sua validade.</p></details><details><summary>Importação e relatórios</summary><p>Importações com conexão ativa modificam a base compartilhada. O JSON preserva a base completa; Excel, CSV e impressão estão na aba Turmas.</p></details></article></div>`;};
- if(state.view==='files')renderFiles();
- const input=document.getElementById('gh-token'),result=document.getElementById('gh-result');
- if(!input||!result)return;
- const form=input.closest('form'),dialog=form.closest('dialog'),disconnect=document.getElementById('gh-disconnect');
- const label=document.createElement('label');label.style.cssText='display:flex;align-items:center;gap:10px;margin-top:16px';
- const remember=document.createElement('input');remember.type='checkbox';remember.id='gh-remember';remember.checked=Boolean(get(tokenKey));
- label.append(remember,document.createTextNode('Lembrar conexão neste computador'));
- const warning=document.createElement('p');warning.style.cssText='font-size:.8rem;margin-top:8px;color:var(--muted)';warning.textContent='Opcional. Salva o token neste navegador. Use apenas em um perfil de confiança; scripts do mesmo site podem acessá-lo.';
- input.parentElement.after(label,warning);
- const oldHelp=[...dialog.querySelectorAll('p')].find(p=>p.textContent.includes('A credencial fica apenas na memória'));
- if(oldHelp)oldHelp.textContent='Use Contents: Read and write apenas no repositório de dados. Sem lembrar a conexão, a credencial fica apenas nesta página. Não use arquivo local simultaneamente.';
- let pending='';
- remember.addEventListener('change',()=>{if(!remember.checked){pending='';remove(tokenKey);}});
- form.addEventListener('submit',()=>{pending=remember.checked?input.value.trim():'';if(!remember.checked)remove(tokenKey);},true);
- disconnect.addEventListener('click',()=>{if(disconnect.disabled)return;pending='';remember.checked=false;remove(tokenKey);},true);
- new MutationObserver(()=>{const text=result.textContent;if(text.startsWith('Base carregada.')||text.startsWith('Salvo no GitHub')){if(pending&&remember.checked){try{localStorage.setItem(tokenKey,pending);}catch{warning.textContent='O navegador não permitiu lembrar a conexão. A sessão atual continua ativa.';}}pending='';}else if(text.startsWith('Não foi possível ativar:')||text.startsWith('Sincronização pausada.')){pending='';if(text.includes('Token inválido')){remove(tokenKey);remember.checked=false;}}}).observe(result,{childList:true,subtree:true,characterData:true});
- let saved=get(tokenKey);
- if(saved){input.value=saved;form.requestSubmit();saved='';}
-});
-</script>
+<script defer src="./assets/lucide.min.js"></script>
+<script defer src="./app.js"></script>
+<script defer src="./github-connect.js"></script>
+<script defer src="./ui-preferences.js"></script>
+<script defer src="./ui-polish.js"></script>
 </head>
 <body>
 <a class="skip" href="#main">Pular para o conteúdo</a>
-<aside class="sidebar"><div class="brand"><strong>SOBEF<span> / </span></strong><span>Jovem Aprendiz</span></div><div class="workspace-label">GESTÃO DE CERTIFICADOS</div>
-<nav aria-label="Navegação principal"><button data-view="overview" class="active"><i data-lucide="layout-dashboard"></i>Visão geral</button><button data-view="classes"><i data-lucide="layers"></i>Turmas<span id="nav-count" class="nav-count">0</span></button><button data-view="calendar"><i data-lucide="calendar-days"></i>Calendário</button><button data-view="files"><i data-lucide="folder-open"></i>Arquivos e ajuda</button></nav>
-<div class="sidebar-bottom"><div class="local-note"><i data-lucide="shield-check"></i><strong>Base compartilhada</strong><p>Conecte ao GitHub e acompanhe o status de salvamento.</p></div><button id="theme" class="theme" aria-pressed="false"><i data-lucide="moon"></i><span>Modo escuro</span></button><footer>SOBEF · Certificados <span>v4.0</span></footer></div></aside>
-<div class="shell"><header class="topbar"><span>Programa Jovem Aprendiz <span class="top-sep">/</span> <strong id="breadcrumb">Visão geral</strong></span><span class="device-status">Gestão de certificados</span></header>
-<main id="main" tabindex="-1"><div class="heading"><div><div class="eyebrow">ACOMPANHAMENTO OPERACIONAL</div><h1 id="page-title">Visão geral</h1><p id="page-desc">Da conclusão da turma à entrega dos certificados.</p></div><div class="heading-actions"><button class="button" id="import"><i data-lucide="upload"></i>Importar planilha</button><button class="button primary" id="new"><i data-lucide="plus"></i>Nova turma</button></div></div>
-<div class="scopebar"><label for="year">Ano de referência <select id="year"></select></label><span id="scope-count"></span><button id="backup" class="text-button" hidden>Backup legado</button></div><div id="save-notice" class="notice" hidden><span></span><button class="text-button" id="connect-file" hidden>Arquivo local legado</button></div>
-<div id="feedback" role="status" aria-live="polite" hidden></div><section id="overview" class="view" aria-label="Visão geral"></section><section id="classes" class="view" aria-label="Turmas" hidden></section><section id="calendar" class="view" aria-label="Calendário" hidden></section><section id="files" class="view" aria-label="Arquivos e ajuda" hidden></section>
-<footer class="main-footer"><span>Gestão de certificados · SOBEF</span><span>Importação · acompanhamento · certificados</span></footer></main></div>
-<input type="file" id="input-sheet" accept=".xlsx,.xls,.csv" hidden><input type="file" id="input-backup" accept=".json" hidden>
-<dialog id="modal"><div id="modal-content"></div></dialog><dialog id="confirm-modal" aria-labelledby="confirm-title"><form method="dialog"><div class="dialog-head"><h2 id="confirm-title">Confirmar ação</h2></div><p id="confirm-message"></p><div class="dialog-footer"><button class="button" value="cancel">Cancelar</button><button class="button primary" value="confirm">Confirmar</button></div></form></dialog>
-</body></html>
+<aside class="sidebar">
+<div class="brand"><strong>SOBEF</strong><span>Certificados</span></div>
+<nav aria-label="Navegação principal" style="margin-top:24px">
+<button data-view="overview" class="active"><i data-lucide="layout-dashboard"></i>Visão geral</button>
+<button data-view="classes"><i data-lucide="layers"></i>Turmas<span id="nav-count" class="nav-count">0</span></button>
+<button data-view="calendar"><i data-lucide="calendar-days"></i>Calendário</button>
+<button data-view="files"><i data-lucide="folder-open"></i>Arquivos</button>
+</nav>
+<div class="sidebar-bottom"><button id="theme" class="theme" aria-pressed="false"><i data-lucide="moon"></i><span>Modo escuro</span></button></div>
+</aside>
+<div class="shell">
+<header class="topbar"><strong id="breadcrumb">Visão geral</strong></header>
+<main id="main" tabindex="-1">
+<div class="heading">
+<div><h1 id="page-title">Visão geral</h1><p id="page-desc" hidden></p></div>
+<div class="heading-actions"><button class="button" id="import"><i data-lucide="upload"></i>Importar</button><button class="button primary" id="new"><i data-lucide="plus"></i>Nova turma</button></div>
+</div>
+<div class="scopebar"><label for="year">Ano <select id="year"></select></label><span id="scope-count"></span><button id="backup" class="text-button" hidden>Backup</button></div>
+<div id="save-notice" class="notice" hidden><span></span><button class="text-button" id="connect-file" hidden>Arquivo local</button></div>
+<div id="feedback" role="status" aria-live="polite" hidden></div>
+<section id="overview" class="view" aria-label="Visão geral"></section>
+<section id="classes" class="view" aria-label="Turmas" hidden></section>
+<section id="calendar" class="view" aria-label="Calendário" hidden></section>
+<section id="files" class="view" aria-label="Arquivos" hidden></section>
+<footer class="main-footer" hidden></footer>
+</main>
+</div>
+<input type="file" id="input-sheet" accept=".xlsx,.xls,.csv" hidden>
+<input type="file" id="input-backup" accept=".json" hidden>
+<dialog id="modal"><div id="modal-content"></div></dialog>
+<dialog id="confirm-modal" aria-labelledby="confirm-title"><form method="dialog"><div class="dialog-head"><h2 id="confirm-title">Confirmar ação</h2></div><p id="confirm-message"></p><div class="dialog-footer"><button class="button" value="cancel">Cancelar</button><button class="button primary" value="confirm">Confirmar</button></div></form></dialog>
+</body>
+</html>
